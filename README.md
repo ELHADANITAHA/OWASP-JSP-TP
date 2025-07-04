@@ -10,6 +10,20 @@
   <a href="https://github.com/ELHADANITAHA/Scalingo-TP">🔗 To access the GitHub repository Scalingo-TP, use the following link:</a>
 </p>
 
+## 📚 Table of Contents
+
+1. [🚀 Before You Begin](#-before-you-begin)  
+2. [✨ Project Overview](#-project-overview)  
+3. [⚖️ Exercise 1 - Infrastructure Hardening and Compliance](#️-exercise-1---infrastructure-hardening-and-compliance)  
+4. [🏗️ Architecture Clarification](#️-architecture-clarification)  
+5. [🗂️ Project Directory Structure](#️-project-directory-structure)  
+6. [📸 Screenshots & Proofs](#-screenshots--proofs)  
+7. [🚨 Exercise 2 - Incident Response Plan](#-exercise-2---incident-response-plan)  
+8. [📈 Exercise 3 - Security Advisory Communication](#-exercise-3---security-advisory-communication)  
+9. [🔗 Authors & Credits](#-authors--credits)  
+10. [⏳ Timeline & Submission](#-timeline--submission)  
+11. [✅ Key Takeaways](#-key-takeaways)  
+
 > **Disclaimer:** This project leverages AI in a professional and educational way to identify, apply, and document best practices for secure infrastructure automation. All guidance, code, and documentation are produced with the intent to demonstrate industry standards and effective DevSecOps workflows.
 
 ## 🚀 Before You Begin
@@ -148,6 +162,7 @@ This project secures a deployment of the vulnerable OWASP Juice Shop application
 2. `terraform init && terraform apply -auto-approve`
 3. All containers and hardening will be provisioned automatically
 4. SAST scan results will be available in `/SAST/Scan_report_Juice-shop-image` (inside the SAST container via `docker exec sast-runner cat //SAST/Scan_report_Juice-shop-image > trivy_scan.txt && nano trivy_scan.txt`)
+5. To access the secured Juice Shop web application: [https://192.168.56.110](https://192.168.56.110)
 
 ---
 
