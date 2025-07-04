@@ -10,6 +10,9 @@
   <a href="https://github.com/ELHADANITAHA/Scalingo-TP">🔗 To access the GitHub repository Scalingo-TP, use the following link:</a>
 </p>
 
+> **Disclaimer:** This project leverages AI in a professional and educational way to identify, apply, and document best practices for secure infrastructure automation. All guidance, code, and documentation are produced with the intent to demonstrate industry standards and effective DevSecOps workflows.
+
+
 ## 📚 Table of Contents
 
 1. [🚀 Before You Begin](#-before-you-begin)  
@@ -23,8 +26,6 @@
 9. [🔗 Authors & Credits](#-authors--credits)  
 10. [⏳ Timeline & Submission](#-timeline--submission)  
 11. [✅ Key Takeaways](#-key-takeaways)  
-
-> **Disclaimer:** This project leverages AI in a professional and educational way to identify, apply, and document best practices for secure infrastructure automation. All guidance, code, and documentation are produced with the intent to demonstrate industry standards and effective DevSecOps workflows.
 
 ## 🚀 Before You Begin
 
