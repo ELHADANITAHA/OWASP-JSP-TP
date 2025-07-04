@@ -1,0 +1,48 @@
+---
+# deploy.yml - Main Ansible deployment playbook
+# 1. Waits for SSH to be ready on the Vagrant VM
+# 2. Installs required packages and Docker network
+# 3. Deploys Juice Shop, Nginx reverse proxy, and WAF containers
+
+- name: Wait for SSH to be ready on Vagrant VM
+  hosts: vagrant
+  gather_facts: false
+  tasks:
+    - name: Wait for port 22 with OpenSSH banner
+      ansible.builtin.wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 22
+        delay: 5          # Wait 5 seconds before starting
+        timeout: 300      # Wait up to 5 minutes
+        state: started
+        search_regex: "OpenSSH"
+        msg: "SSH service not ready after timeout"
+
+
+- name: Deploy Juice Shop, Nginx Reverse Proxy, and WAF (MobSecurity)
+  hosts: vagrant
+  become: true
+  gather_facts: true
+  pre_tasks:
+    - name: Update APT cache
+      apt:
+        update_cache: yes
+      become: true
+
+    - name: Install required packages (Docker, Python3, pip)
+      apt:
+        name:
+          - docker.io
+          - python3
+          - python3-pip
+        state: present
+      become: true
+
+    - name: Ensure custom Docker network exists (app_net)
+      community.docker.docker_network:
+        name: app_net
+        state: present
+  roles:
+    - juice_shop           # Deploys the Juice Shop application container
+    - nginx_reverse_proxy  # Deploys the Nginx HTTPS reverse proxy container
+    - waf_modsecurity      # Deploys the WAF (ModSecurity CRS) container

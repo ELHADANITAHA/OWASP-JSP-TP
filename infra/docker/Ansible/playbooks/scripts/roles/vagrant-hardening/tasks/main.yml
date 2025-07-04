@@ -1,0 +1,244 @@
+---
+# main.yml - Ansible role: vagrant-hardening
+# Harden and secure the Vagrant VM for production use.
+# Implements: apt/dpkg lock handling, sudoers and SSH hardening, firewall, fail2ban, auditd, secure permissions, and application directory setup.
+
+# Wait for apt/dpkg locks to be released before any package operations
+- name: Wait for apt locks to be released
+  ansible.builtin.shell: |
+    timeout=300
+    waited=0
+    while (fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1); do
+      sleep 2
+      waited=$((waited+2))
+      if [ $waited -ge $timeout ]; then
+        echo "Timeout waiting for apt locks"
+        exit 1
+      fi
+    done
+  changed_when: false
+
+# Discover and enforce correct permissions on all sudoers.d files
+- name: Find sudoers files in /etc/sudoers.d
+  ansible.builtin.find:
+    paths: /etc/sudoers.d
+    patterns: '*'
+  register: sudoers_files
+
+- name: Ensure sudoers.d files have 0440 permissions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    mode: '0440'
+  loop: "{{ sudoers_files.files }}"
+
+# Update apt cache for faster package installation
+- name: Update APT cache only
+  ansible.builtin.apt:
+    update_cache: yes
+
+# SSH hardening: disable root login and password authentication in main config
+- name: Disable root SSH login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PermitRootLogin'
+    line: 'PermitRootLogin no'
+    state: present
+  notify: Restart ssh
+
+- name: Disable SSH password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+    state: present
+    insertafter: EOF
+  notify: Restart ssh
+
+# List contents of sshd_config.d for troubleshooting
+- name: List /etc/ssh/sshd_config.d directory contents
+  ansible.builtin.shell: ls -l /etc/ssh/sshd_config.d
+  register: sshd_dir
+  ignore_errors: true
+
+- debug:
+    var: sshd_dir.stdout_lines
+
+# SSH hardening: enforce PasswordAuthentication no in all included config fragments
+- name: Find all sshd_config.d conf files
+  ansible.builtin.find:
+    paths: /etc/ssh/sshd_config.d
+    patterns: '*.conf'
+  register: sshd_conf_files
+
+- name: Replace PasswordAuthentication yes with no in all sshd_config.d conf files
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: '(?i)^PasswordAuthentication\\s+yes'
+    replace: 'PasswordAuthentication no'
+  loop: "{{ sshd_conf_files.files }}"
+  notify: Restart ssh
+  become: true
+
+- name: Ensure PasswordAuthentication no is present in all sshd_config.d conf files
+  ansible.builtin.lineinfile:
+    path: "{{ item.path }}"
+    regexp: '^PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+    state: present
+    insertafter: EOF
+  loop: "{{ sshd_conf_files.files }}"
+  notify: Restart ssh
+  become: true
+
+# Install and configure fail2ban for SSH brute-force protection
+- name: Install fail2ban with apt lock wait
+  ansible.builtin.shell: |
+    timeout=300
+    waited=0
+    while (fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1); do
+      sleep 2
+      waited=$((waited+2))
+      if [ $waited -ge $timeout ]; then
+        echo "Timeout waiting for apt locks"
+        exit 1
+      fi
+    done
+    apt-get update
+    apt-get install -y fail2ban
+  register: fail2ban_result
+  until: fail2ban_result is succeeded
+  retries: 10
+  delay: 10
+
+# Install and enable UFW firewall, allow only SSH/HTTP/HTTPS
+- name: Ensure UFW is installed and enabled with apt lock wait
+  ansible.builtin.shell: |
+    timeout=300
+    waited=0
+    while (fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1); do
+      sleep 2
+      waited=$((waited+2))
+      if [ $waited -ge $timeout ]; then
+        echo "Timeout waiting for apt locks"
+        exit 1
+      fi
+    done
+    apt-get update
+    apt-get install -y ufw
+  register: ufw_result
+  until: ufw_result is succeeded
+  retries: 10
+  delay: 10
+
+- name: Allow SSH and HTTP/S in UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+  loop:
+    - 22
+    - 80
+    - 443
+
+- name: Enable UFW and set default policy to deny
+  community.general.ufw:
+    state: enabled
+    policy: deny
+
+# Set secure permissions on /etc/shadow
+- name: Set permissions on /etc/shadow
+  ansible.builtin.file:
+    path: /etc/shadow
+    owner: root
+    group: shadow
+    mode: '0640'
+
+# Install auditd for system auditing
+- name: Install auditd with apt lock wait
+  ansible.builtin.shell: |
+    timeout=300
+    waited=0
+    while (fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1); do
+      sleep 2
+      waited=$((waited+2))
+      if [ $waited -ge $timeout ]; then
+        echo "Timeout waiting for apt locks"
+        exit 1
+      fi
+    done
+    apt-get update
+    apt-get install -y auditd
+  register: auditd_result
+  until: auditd_result is succeeded
+  retries: 10
+  delay: 10
+
+# Sudoers hardening: enforce password for sudo, remove NOPASSWD, and restrict sudo group
+- name: Ensure password is required for sudo
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    regexp: '^%sudo'
+    line: '%sudo   ALL=(ALL:ALL) ALL'
+    validate: 'visudo -cf %s'
+
+- name: Remove NOPASSWD lines from sudoers.d files
+  ansible.builtin.lineinfile:
+    path: "{{ item.path }}"
+    regexp: '^.*NOPASSWD.*$'
+    state: absent
+    backup: yes
+  loop: "{{ sudoers_files.files }}"
+  when: item.path is file
+
+- name: Ensure no NOPASSWD in main sudoers file
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    regexp: '^%?sudo\\s+ALL=\\(ALL:ALL\\)\\s+NOPASSWD:ALL'
+    state: absent
+    backup: yes
+
+- name: Check sudoers syntax
+  ansible.builtin.command: visudo -c
+  register: visudo_check
+  failed_when: visudo_check.rc != 0
+
+# Application directory setup for Juice Shop
+- name: Create juice-shop app folder in VM (non-root)
+  ansible.builtin.file:
+    path: /srv/juice-shop
+    state: directory
+    owner: vagrant
+    group: vagrant
+    mode: '0775'
+
+# Remove all users from sudo group (including root, for total lockout)
+- name: Remove all users from sudo group (including root, for total lockout)
+  ansible.builtin.command: gpasswd -M "" sudo
+  become: true
+
+# Remove all files in /etc/sudoers.d except README
+- name: Find all sudoers.d files except README
+  ansible.builtin.find:
+    paths: /etc/sudoers.d
+    patterns: '*'
+    excludes: 'README'
+  register: sudoers_files_to_remove
+  become: true
+
+- name: Remove all files in /etc/sudoers.d except README
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ sudoers_files_to_remove.files }}"
+  become: true
+
+# Final SSH hardening: ensure root login is disabled
+- name: Disable root SSH login (final privileged action)
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PermitRootLogin'
+    line: 'PermitRootLogin no'
+    state: present
+  notify: Restart ssh
+  become: true
+
+# End of privileged tasks

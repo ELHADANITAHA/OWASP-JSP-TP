@@ -1,0 +1,25 @@
+---
+# vagrant-hardening.yml - Ansible playbook for VM OS hardening
+# 1. Waits for SSH to be ready on the Vagrant VM
+# 2. Applies the vagrant-hardening role for OS security best practices
+
+- name: Wait for SSH to be ready on Vagrant VM
+  hosts: vagrant
+  gather_facts: false
+  tasks:
+    - name: Wait for port 22 with OpenSSH banner
+      ansible.builtin.wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 22
+        delay: 5           # Wait 5 seconds before starting
+        timeout: 300       # Wait up to 5 minutes
+        state: started
+        search_regex: "OpenSSH"
+        msg: "SSH service not ready after timeout"
+
+- name: JS-Vagrant OS Hardening for Linux targets
+  hosts: vagrant
+  become: true
+  gather_facts: true
+  roles:
+    - vagrant-hardening   # Applies all hardening tasks to the VM

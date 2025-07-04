@@ -1,0 +1,35 @@
+# ===============================
+# default.conf.template
+# Nginx configuration for WAF (ModSecurity CRS)
+#
+# - Listens on port 80 (HTTP) and redirects all traffic to HTTPS (port 8443)
+# - Listens on port 8443 (HTTPS) with SSL termination
+# - Proxies all traffic to the internal Nginx reverse proxy (HTTP-only)
+# - SSL certificate and key are mounted at /etc/nginx/conf/server.crt and /etc/nginx/conf/server.key
+# - Hardened SSL protocols and ciphers
+# - Used as a template for envsubst in the WAF container entrypoint
+# ===============================
+
+server {
+    listen 80;
+    server_name _;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 8443 ssl;
+    server_name _;
+
+    ssl_certificate     /etc/nginx/conf/server.crt;
+    ssl_certificate_key /etc/nginx/conf/server.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    location / {
+        proxy_pass http://nginx-reverse-proxy:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

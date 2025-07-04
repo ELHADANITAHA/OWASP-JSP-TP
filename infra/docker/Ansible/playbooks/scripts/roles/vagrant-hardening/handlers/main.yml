@@ -1,0 +1,8 @@
+---
+# main.yml - Ansible handlers for vagrant-hardening role
+# Handler to restart the SSH service after configuration changes
+
+- name: Restart ssh
+  ansible.builtin.service:
+    name: ssh
+    state: restarted

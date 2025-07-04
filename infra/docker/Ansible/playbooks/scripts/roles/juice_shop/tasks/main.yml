@@ -1,0 +1,12 @@
+---
+# main.yml - Ansible role: Juice Shop deployment
+# Deploys the Juice Shop application as a Docker container on the custom app_net network
+
+- name: Run Juice Shop in Docker 
+  docker_container:
+    name: juice-shop
+    image: bkimminich/juice-shop
+    state: started
+    restart_policy: always
+    networks:
+      - name: app_net

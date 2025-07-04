@@ -1,0 +1,99 @@
+---
+# main.yml - Ansible role: WAF (ModSecurity CRS) deployment
+#
+# This role deploys the WAF container (ModSecurity CRS for Nginx) with the following steps:
+#   - Ensures the /opt/waf directory exists on the target VM (for config/certs)
+#   - Copies the Nginx config template (default.conf.template) for the WAF
+#   - Copies the SSL certificate (fullchain.pem) and private key (privkey.pem)
+#   - Sets secure permissions on all config and certificate files
+#   - Deploys the WAF container with:
+#       * Custom config and SSL certs mounted read-only
+#       * All required environment variables for ModSecurity and backend
+#       * Only port 443 exposed externally (HTTPS)
+#       * Internal Docker network for secure communication with Nginx reverse proxy
+#   - No direct exposure of Nginx or Juice Shop containers
+#
+# Security best practices:
+#   - All sensitive files are mounted read-only
+#   - Only the WAF container is exposed to the outside
+#   - All traffic is forced through WAF → Nginx (HTTP) → Juice Shop
+#   - No secrets or private keys are stored in the codebase
+#
+# This role is idempotent and safe to re-run.
+
+- name: Ensure /opt/waf directory exists
+  file:
+    path: /opt/waf
+    state: directory
+    mode: '0755'
+
+- name: Copy WAF Nginx config template (default.conf.template)
+  copy:
+    src: files/default.conf.template
+    dest: /opt/waf/default.conf.template
+    mode: '0644'
+
+- name: Copy WAF SSL fullchain
+  copy:
+    src: files/fullchain.pem
+    dest: /opt/waf/fullchain.pem
+    mode: '0644'
+
+- name: Copy WAF SSL privkey
+  copy:
+    src: files/privkey.pem
+    dest: /opt/waf/privkey.pem
+    mode: '0644'
+
+- name: Set permissions on /opt/waf recursively
+  file:
+    path: /opt/waf
+    state: directory
+    mode: '0755'
+    recurse: yes
+
+- name: Set permissions on default.conf.template
+  file:
+    path: /opt/waf/default.conf.template
+    state: file
+    mode: '0644'
+
+- name: Set permissions on fullchain.pem
+  file:
+    path: /opt/waf/fullchain.pem
+    state: file
+    mode: '0644'
+
+- name: Set permissions on privkey.pem
+  file:
+    path: /opt/waf/privkey.pem
+    state: file
+    mode: '0644'
+
+- name: Deploy WAF (ModSecurity CRS for Nginx) container
+  community.docker.docker_container:
+    name: waf-modsec
+    image: owasp/modsecurity-crs:nginx
+    state: started
+    restart_policy: unless-stopped
+    env:
+      PORT: "8443"
+      PROXY: "1"
+      BACKEND: "http://nginx-reverse-proxy:80"
+      MODSEC_RULE_ENGINE: "on"
+      BLOCKING_PARANOIA: "2"
+      TZ: "Europe/Paris"
+      MODSEC_TMP_DIR: "/tmp"
+      MODSEC_RESP_BODY_ACCESS: "On"
+      MODSEC_RESP_BODY_MIMETYPE: "text/plain text/html text/xml application/json"
+      COMBINED_FILE_SIZES: "65535"
+      SSL_CERT: "/etc/nginx/conf/server.crt"
+      SSL_CERT_KEY: "/etc/nginx/conf/server.key"
+    ports:
+      - "443:8443"
+    networks:
+      - name: app_net
+    volumes:
+      - /opt/waf/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template
+      - /opt/waf/fullchain.pem:/etc/nginx/conf/server.crt
+      - /opt/waf/privkey.pem:/etc/nginx/conf/server.key
