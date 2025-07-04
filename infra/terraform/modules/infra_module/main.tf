@@ -157,12 +157,12 @@ resource "tls_self_signed_cert" "nginx_cert" {
 }
 
 resource "local_file" "waf_fullchain" {
-  filename = "${var.ansible_base}/playbooks/scripts/roles/waf_mobsecurity/files/fullchain.pem"
+  filename = "${var.ansible_base}/playbooks/scripts/roles/waf_modsecurity/files/fullchain.pem"
   content  = tls_self_signed_cert.nginx_cert.cert_pem
 }
 
 resource "local_file" "waf_privkey" {
-  filename = "${var.ansible_base}/playbooks/scripts/roles/waf_mobsecurity/files/privkey.pem"
+  filename = "${var.ansible_base}/playbooks/scripts/roles/waf_modsecurity/files/privkey.pem"
   content  = tls_private_key.nginx_key.private_key_pem
 }
 resource "docker_network" "infra_bridge_network" {
