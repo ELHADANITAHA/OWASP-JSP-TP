@@ -1,4 +1,4 @@
-# OWASP Juice Shop - Technical Assessment for Scalingo
+# OWASP Juice Shop - DevSecOps Practicing
 
 <p align="center">
   <img src="https://img.shields.io/badge/Terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white" alt="Terraform Badge"/>
@@ -7,10 +7,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ELHADANITAHA/Scalingo-TP">🔗 To access the GitHub repository Scalingo-TP, use the following link:</a>
+  <a href="https://github.com/ELHADANITAHA/OWASP-JSP-TP">🔗 To access the GitHub repository OWASP-JSP-TP, use the following link:</a>
 </p>
-
-> **Disclaimer:** This project leverages AI in a professional and educational way to identify, apply, and document best practices for secure infrastructure automation. All guidance, code, and documentation are produced with the intent to demonstrate industry standards and effective DevSecOps workflows.
 
 
 ## 📚 Table of Contents
@@ -310,7 +308,7 @@ A critical vulnerability (CVE-2023-29017, CVE-2023-29199, etc.) was found in the
 
 ## 📈 Exercise 3 - Security Advisory Communication
 
-### Scalingo-Style Security Bulletin (SSB)
+### Security Bulletin (SSB)
 
 **ID:** SSB-2025-07-JUICESHOP-CRITDEP
 **Date:** 2025-07-03
@@ -347,19 +345,6 @@ The vulnerable dependency has been removed and the application image rebuilt. Al
 - Taha EL HADANI - Junior Security Engineer
 - Based on OWASP Juice Shop, Docker, ModSecurity CRS
 - Trivy (by Aqua Security) used for scanning
-
----
-
-## ⏳ Timeline & Submission
-
-- Deadline respected: 7 days
-- GitHub repo shared privately with Scalingo team:
-  - [@yanjost](https://github.com/yanjost)
-  - [@leo-scalingo](https://github.com/leo-scalingo)
-  - [@john-scalingo](https://github.com/john-scalingo)
-  - [@sc-jerome-s](https://github.com/sc-jerome-s)
-
----
 
 ## ✅ Key Takeaways
 
